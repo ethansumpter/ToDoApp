@@ -1,15 +1,43 @@
+"use client";
+
+import { useState } from "react";
+import { useSignInWithEmailAndPassword, useSignInWithGoogle } from "react-firebase-hooks/auth";
+import { auth } from "@/app/firebase/config";
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useRouter } from "next/navigation";
+import { AuthErrorAlert } from "./auth-error-alert";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [signInWithEmailAndPassword, user, loading, error] = useSignInWithEmailAndPassword(auth);
+  const [signInWithGoogle, googleUser, googleLoading, googleError] = useSignInWithGoogle(auth);
+
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+        const response = await signInWithEmailAndPassword(email, password);
+        console.log(response);
+        sessionStorage.setItem("user", "email");
+        setEmail("");
+        setPassword("");
+        // router.push("/");
+    } catch (e) {
+        console.error(e);
+    }
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form className="flex flex-col gap-6">
+      <AuthErrorAlert error={error || googleError} context="login" />
+      <form onSubmit={handleLogin} className="flex flex-col gap-6">
         <div className="flex flex-col items-center text-center">
           <h1 className="text-2xl font-bold">Welcome back</h1>
           <p className="text-muted-foreground text-balance">
@@ -23,6 +51,8 @@ export function LoginForm({
             type="email"
             placeholder="me@example.com"
             required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
 
@@ -36,7 +66,13 @@ export function LoginForm({
               Forgot your password?
             </a>
           </div>
-          <Input id="password" type="password" required />
+          <Input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </div>
 
         <Button type="submit" className="w-full">
@@ -48,17 +84,18 @@ export function LoginForm({
             Or continue with
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {/* Google */}
-          <Button variant="outline" type="button" className="w-full">
+          <Button onClick={() => signInWithGoogle()} variant="outline" type="button" className="w-full">
             <img src="/googleicon.svg" alt="Google" className="w-4 h-4" />
             <span className="sr-only">Login with Google</span>
+            Login with Google
           </Button>
-          {/* Microsoft */}
-          <Button variant="outline" type="button" className="w-full">
+          {/* Microsoft
+          <Button onClick={() => signInWithMicrosoft()} variant="outline" type="button" className="w-full">
             <img src="/msicon.svg" alt="Microsoft" className="w-4 h-4" />
             <span className="sr-only">Login with Microsoft</span>
-          </Button>
+          </Button> */}
         </div>
         <div className="text-center text-sm">
           Don&apos;t have an account?{" "}
