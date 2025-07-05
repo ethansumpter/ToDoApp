@@ -56,7 +56,7 @@ const defaultCategories = ["Research", "Development", "Testing", "Documentation"
 const defaultStatuses = ["To Do", "In Progress", "Review", "Done"];
 
 export function CreateBoardForm({ onSubmit, onCancel, isLoading = false }: CreateBoardFormProps) {
-  const [selectedIcon, setSelectedIcon] = useState<IconName>("square-kanban");
+  const [selectedIcon, setSelectedIcon] = useState<IconName>("folder-kanban");
   const [categories, setCategories] = useState<string[]>(defaultCategories);
   const [statuses, setStatuses] = useState<string[]>(defaultStatuses);
   const isClient = useIsClient();

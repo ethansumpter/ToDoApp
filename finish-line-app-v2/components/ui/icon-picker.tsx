@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LucideProps, LucideIcon } from 'lucide-react';
-import { DynamicIcon, IconName } from 'lucide-react/dynamic';
+import { IconName } from 'lucide-react/dynamic';
+import * as LucideIcons from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { iconsData } from "./icons-data";
 import { useVirtualizer, VirtualItem } from '@tanstack/react-virtual';
@@ -33,7 +34,12 @@ interface IconPickerProps extends Omit<React.ComponentPropsWithoutRef<typeof Pop
 }
 
 const IconRenderer = React.memo(({ name }: { name: IconName }) => {
-  return <Icon name={name} />;
+  try {
+    return <Icon name={name} />;
+  } catch (error) {
+    console.error(`Error rendering icon "${name}":`, error);
+    return <LucideIcons.Square className="w-4 h-4" />;
+  }
 });
 IconRenderer.displayName = "IconRenderer";
 
@@ -428,11 +434,31 @@ interface IconProps extends Omit<LucideProps, 'ref'> {
   name: IconName;
 }
 
+// Convert kebab-case icon name to PascalCase component name
+const toPascalCase = (str: string) => {
+  return str
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+};
+
 const Icon = React.forwardRef<
   React.ComponentRef<LucideIcon>,
   IconProps
 >(({ name, ...props }, ref) => {
-  return <DynamicIcon name={name} {...props} ref={ref} />;
+  // Convert icon name to PascalCase to match Lucide component names
+  const pascalCaseName = toPascalCase(name);
+  
+  // Get the icon component from Lucide
+  const IconComponent = (LucideIcons as any)[pascalCaseName] as LucideIcon;
+  
+  // Fallback to Square icon if the requested icon doesn't exist
+  if (!IconComponent) {
+    console.warn(`Icon "${name}" (${pascalCaseName}) not found in Lucide. Using Square as fallback.`);
+    return <LucideIcons.Square {...props} ref={ref} />;
+  }
+  
+  return <IconComponent {...props} ref={ref} />;
 });
 Icon.displayName = "Icon";
 
