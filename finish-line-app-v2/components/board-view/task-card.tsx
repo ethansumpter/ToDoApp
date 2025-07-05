@@ -14,10 +14,34 @@ interface TaskCardProps {
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   onClick?: (task: Task) => void;
+  isDragging?: boolean;
+  onDragStart?: (taskId: string) => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete, onClick }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onDelete, onClick, isDragging = false, onDragStart }: TaskCardProps) {
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      taskId: task.id,
+      sourceStatus: task.status
+    }));
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart?.(task.id);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.dataTransfer.clearData();
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Prevent click when dragging
+    if (isDragging) {
+      e.preventDefault();
+      return;
+    }
+    onClick?.(task);
+  };
 
   // Fetch assignee name if task has an assignee
   useEffect(() => {
@@ -60,8 +84,13 @@ export function TaskCard({ task, onEdit, onDelete, onClick }: TaskCardProps) {
     });
   };  return (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-shadow group" 
-      onClick={() => onClick?.(task)}
+      className={`cursor-pointer hover:shadow-md transition-all group ${
+        isDragging ? 'opacity-50 rotate-2 scale-95' : ''
+      }`}
+      onClick={handleClick}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <CardContent className="p-3 space-y-3">
         {/* Header with Task Name */}

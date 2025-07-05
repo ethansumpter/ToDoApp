@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Board } from "@/types/boards";
 import { Task, TaskFormData } from "@/types/tasks";
 import { getBoardByBoardCode } from "@/lib/supabase/boards";
-import { createTask, getTasksByBoard } from "@/lib/supabase/tasks";
+import { createTask, getTasksByBoard, updateTask } from "@/lib/supabase/tasks";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -204,6 +204,28 @@ export default function BoardViewPage() {
     setSelectedTask(updatedTask);
   };
 
+  const handleTaskMove = async (taskId: string, sourceStatus: string, targetStatus: string) => {
+    if (!board) return;
+    
+    try {
+      // Update task status in database
+      await updateTask(taskId, { status: targetStatus });
+      
+      // Update local state
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, status: targetStatus } : task
+      ));
+      
+      // Update selected task if it's the one being moved
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask(prev => prev ? { ...prev, status: targetStatus } : null);
+      }
+    } catch (error) {
+      console.error("Error moving task:", error);
+      // You might want to show an error notification to the user here
+    }
+  };
+
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* Board Header */}
@@ -229,6 +251,7 @@ export default function BoardViewPage() {
         availableUsers={availableUsers}
         onAddTask={handleAddTask}
         onTaskClick={handleTaskClick}
+        onTaskMove={handleTaskMove}
       />
 
       {/* Task Details Panel - Overlay */}

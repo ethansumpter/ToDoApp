@@ -10,6 +10,7 @@ interface BoardColumnsProps {
   availableUsers?: string[];
   onAddTask?: (status: string, taskData: TaskFormData) => void;
   onTaskClick?: (task: Task) => void;
+  onTaskMove?: (taskId: string, sourceStatus: string, targetStatus: string) => void;
 }
 
 export function BoardColumns({ 
@@ -18,7 +19,8 @@ export function BoardColumns({
   categories = [], 
   availableUsers = [], 
   onAddTask,
-  onTaskClick
+  onTaskClick,
+  onTaskMove
 }: BoardColumnsProps) {
   // Group tasks by status
   const tasksByStatus = tasks.reduce((acc, task) => {
@@ -41,6 +43,7 @@ export function BoardColumns({
             availableUsers={availableUsers}
             onAddTask={onAddTask}
             onTaskClick={onTaskClick}
+            onTaskMove={onTaskMove}
           />
         ))}
       </div>
