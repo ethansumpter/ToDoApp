@@ -16,6 +16,7 @@ import {
   Check
 } from "lucide-react";
 import { AddTaskProps, TaskFormData } from "@/types/tasks";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export function AddTaskInline({ 
   onSave, 
@@ -29,6 +30,16 @@ export function AddTaskInline({
   const [deadline, setDeadline] = useState<Date | undefined>();
   const [assignee, setAssignee] = useState<string | undefined>();
   const cardRef = useRef<HTMLDivElement>(null);
+  const { userProfile } = useUserProfile();
+
+  // Helper function to format user display name
+  const formatUserDisplayName = (userId: string): string => {
+    if (userProfile && userProfile.id === userId) {
+      return `${userProfile.first_name} ${userProfile.last_name.charAt(0)}.`;
+    }
+    // For now, just return the user ID if we don't have their profile
+    return userId;
+  };
 
   // Handle click outside to cancel
   useEffect(() => {
@@ -255,15 +266,15 @@ export function AddTaskInline({
                   >
                     Unassigned
                   </Button>
-                  {availableUsers.map((user) => (
+                  {availableUsers.map((userId) => (
                     <Button
-                      key={user}
+                      key={userId}
                       variant="ghost"
                       size="sm"
-                      className={`w-full justify-start text-xs ${assignee === user ? 'bg-accent text-accent-foreground' : ''}`}
-                      onClick={() => setAssignee(user)}
+                      className={`w-full justify-start text-xs ${assignee === userId ? 'bg-accent text-accent-foreground' : ''}`}
+                      onClick={() => setAssignee(userId)}
                     >
-                      {user}
+                      {formatUserDisplayName(userId)}
                     </Button>
                   ))}
                 </div>
