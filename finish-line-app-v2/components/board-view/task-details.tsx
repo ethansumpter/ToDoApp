@@ -28,6 +28,7 @@ export function TaskDetails({ task, onClose, onTaskUpdate, statuses = [], catego
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
   const [createdByName, setCreatedByName] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   
   // Editable fields
@@ -46,7 +47,15 @@ export function TaskDetails({ task, onClose, onTaskUpdate, statuses = [], catego
 
   // Animation state management
   useEffect(() => {
-    setIsVisible(true);
+    // Mount the component immediately
+    setIsMounted(true);
+    
+    // Small delay to ensure the DOM is ready and the transition can be seen
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 10);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   // Update local state when task prop changes
@@ -58,7 +67,9 @@ export function TaskDetails({ task, onClose, onTaskUpdate, statuses = [], catego
   const handleClose = () => {
     setIsVisible(false);
     // Wait for animation to complete before calling onClose
-    setTimeout(onClose, 300);
+    setTimeout(() => {
+      onClose();
+    }, 300);
   };
 
   // Auto-save function
@@ -272,11 +283,16 @@ export function TaskDetails({ task, onClose, onTaskUpdate, statuses = [], catego
     });
   };
 
+  // Don't render until component is mounted to ensure proper animation
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 z-[9999] flex" style={{ margin: 0, padding: 0, top: 0, left: 0, right: 0, bottom: 0 }}>
       {/* Backdrop - left side */}
       <div 
-        className={`flex-1 cursor-pointer transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className="flex-1 cursor-pointer"
         onClick={handleClose}
       />
       
