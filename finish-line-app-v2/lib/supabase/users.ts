@@ -1,6 +1,23 @@
 import { createClient } from './client';
 import { UserProfile } from '@/types/user';
 
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const supabase = createClient();
+  
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+
+  return data;
+}
+
 export async function getUserProfiles(userIds: string[]): Promise<UserProfile[]> {
   const supabase = createClient();
   

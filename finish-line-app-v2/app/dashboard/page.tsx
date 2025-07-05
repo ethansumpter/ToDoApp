@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [userBoards, setUserBoards] = useState<ProjectBoard[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
 
   // Fetch user boards on component mount
   useEffect(() => {
@@ -37,6 +38,17 @@ export default function DashboardPage() {
         }
         
         setCurrentUserId(user.id);
+        
+        // Fetch user profile from users table
+        const { getUserProfile } = await import("@/lib/supabase/users");
+        const userProfile = await getUserProfile(user.id);
+        
+        if (userProfile) {
+          setUserName(`${userProfile.first_name}`);
+        } else {
+          // Fallback to email if no profile found
+          setUserName("");
+        }
         
         // Fetch user's boards
         const boards = await getUserProjectBoards(user.id);
@@ -170,7 +182,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <DashboardHeader 
-        userName={currentUser.name} 
+        userName={userName} 
         onNewProject={handleNewProject}
       />
 

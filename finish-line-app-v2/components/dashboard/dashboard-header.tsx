@@ -10,7 +10,9 @@ export function DashboardHeader({ userName, onNewProject }: DashboardHeaderProps
   return (
     <div className="flex justify-between items-center">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back, {userName}!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {userName ? `Welcome back, ${userName}!` : "Welcome back!"}
+        </h1>
         <p className="text-muted-foreground">
           Here's what's happening with your projects today.
         </p>
