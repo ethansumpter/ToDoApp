@@ -68,3 +68,28 @@ export async function getTasksByBoard(boardId: number) {
 
   return data || [];
 }
+
+export async function updateTask(taskId: string, updates: Partial<CreateTaskData>) {
+  const supabase = createClient();
+  
+  // Check if user is authenticated
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error('User not authenticated:', authError);
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .update(updates)
+    .eq('id', taskId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating task:', error);
+    throw new Error(error.message || 'Failed to update task');
+  }
+
+  return data;
+}

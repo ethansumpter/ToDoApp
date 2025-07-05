@@ -197,6 +197,13 @@ export default function BoardViewPage() {
     setSelectedTask(null);
   };
 
+  const handleTaskUpdate = (updatedTask: Task) => {
+    setTasks(prev => prev.map(task => 
+      task.id === updatedTask.id ? updatedTask : task
+    ));
+    setSelectedTask(updatedTask);
+  };
+
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* Board Header */}
@@ -229,6 +236,7 @@ export default function BoardViewPage() {
         <TaskDetails 
           task={selectedTask} 
           onClose={handleCloseTaskDetails}
+          onTaskUpdate={handleTaskUpdate}
         />
       )}
     </div>

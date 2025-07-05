@@ -4,30 +4,102 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Tag, Users, X, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Tag, Users, X, Clock, Save, Loader2 } from "lucide-react";
 import { Task } from "@/types/tasks";
 import { getUserProfiles, formatUserDisplayName } from "@/lib/supabase/users";
 import { UserProfile } from "@/types/user";
+import { updateTask } from "@/lib/supabase/tasks";
 
 interface TaskDetailsProps {
   task: Task;
   onClose: () => void;
+  onTaskUpdate?: (updatedTask: Task) => void;
 }
 
-export function TaskDetails({ task, onClose }: TaskDetailsProps) {
+export function TaskDetails({ task, onClose, onTaskUpdate }: TaskDetailsProps) {
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
   const [createdByName, setCreatedByName] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  
+  // Editable fields
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || '');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Animation state management
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
+  // Update local state when task prop changes
+  useEffect(() => {
+    setTitle(task.title);
+    setDescription(task.description || '');
+  }, [task]);
+
   const handleClose = () => {
     setIsVisible(false);
     // Wait for animation to complete before calling onClose
     setTimeout(onClose, 300);
+  };
+
+  // Auto-save function
+  const autoSave = async (field: 'title' | 'description', value: string) => {
+    if (value === task[field]) return; // No change, don't save
+    
+    setIsSaving(true);
+    try {
+      const updates = { [field]: value };
+      await updateTask(task.id, updates);
+      
+      // Update parent component with new task data
+      if (onTaskUpdate) {
+        const updatedTask = { ...task, [field]: value, updatedAt: new Date().toISOString() };
+        onTaskUpdate(updatedTask);
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
+      // Revert to original value on error
+      if (field === 'title') setTitle(task.title);
+      if (field === 'description') setDescription(task.description || '');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle title blur (save on blur)
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false);
+    autoSave('title', title);
+  };
+
+  // Handle description blur (save on blur)
+  const handleDescriptionBlur = () => {
+    setIsEditingDescription(false);
+    autoSave('description', description);
+  };
+
+  // Handle Enter key for title
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleTitleBlur();
+    } else if (e.key === 'Escape') {
+      setTitle(task.title);
+      setIsEditingTitle(false);
+    }
+  };
+
+  // Handle Escape key for description
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setDescription(task.description || '');
+      setIsEditingDescription(false);
+    }
   };
 
   // Fetch user names if task has assignee or createdBy
@@ -132,11 +204,28 @@ export function TaskDetails({ task, onClose }: TaskDetailsProps) {
           </div>
           
           <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-            {/* Task Title */}
+            {/* Task Title - Editable */}
             <div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                {task.title}
-              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                {isEditingTitle ? (
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onBlur={handleTitleBlur}
+                    onKeyDown={handleTitleKeyDown}
+                    className="text-xl font-semibold border-none shadow-none p-0 focus-visible:ring-1 focus-visible:ring-ring"
+                    autoFocus
+                  />
+                ) : (
+                  <h3 
+                    className="text-xl font-semibold text-foreground cursor-pointer hover:bg-accent hover:text-accent-foreground rounded px-2 py-1 -mx-2 -my-1 transition-colors"
+                    onClick={() => setIsEditingTitle(true)}
+                  >
+                    {title}
+                  </h3>
+                )}
+                {isSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
               
               {/* Status Badge */}
               <Badge variant="outline" className="mb-4">
@@ -144,22 +233,32 @@ export function TaskDetails({ task, onClose }: TaskDetailsProps) {
               </Badge>
             </div>
 
-            {/* Description */}
-            {task.description ? (
-              <div>
-                <h4 className="text-sm font-medium text-foreground mb-2">Description</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {task.description}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <h4 className="text-sm font-medium text-foreground mb-2">Description</h4>
-                <p className="text-sm text-muted-foreground italic">
-                  No description provided
-                </p>
-              </div>
-            )}
+            {/* Description - Editable */}
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-2">Description</h4>
+              {isEditingDescription ? (
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onBlur={handleDescriptionBlur}
+                  onKeyDown={handleDescriptionKeyDown}
+                  placeholder="Add a description..."
+                  className="min-h-[100px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-ring"
+                  autoFocus
+                />
+              ) : (
+                <div
+                  className="text-sm text-muted-foreground leading-relaxed cursor-pointer hover:bg-accent hover:text-accent-foreground rounded px-2 py-1 -mx-2 -my-1 transition-colors min-h-[40px] flex items-start"
+                  onClick={() => setIsEditingDescription(true)}
+                >
+                  {description ? (
+                    <span>{description}</span>
+                  ) : (
+                    <span className="italic">No description provided. Click to add one.</span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Task Properties */}
             <div className="space-y-4">
