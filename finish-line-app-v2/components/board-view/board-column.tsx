@@ -15,6 +15,7 @@ interface BoardColumnProps {
   categories?: string[];
   availableUsers?: string[];
   onAddTask?: (status: string, taskData: TaskFormData) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
 export function BoardColumn({ 
@@ -22,7 +23,8 @@ export function BoardColumn({
   tasks = [], 
   categories = [], 
   availableUsers = [], 
-  onAddTask 
+  onAddTask,
+  onTaskClick
 }: BoardColumnProps) {
   const [isAddingTask, setIsAddingTask] = useState(false);
 
@@ -74,7 +76,11 @@ export function BoardColumn({
         {/* Tasks */}
         <div className="flex-1 space-y-2 overflow-y-auto">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard 
+              key={task.id} 
+              task={task} 
+              onClick={onTaskClick}
+            />
           ))}
         </div>
       </CardContent>

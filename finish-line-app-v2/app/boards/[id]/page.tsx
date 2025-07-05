@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useIsClient } from "@/hooks/use-is-client";
-import { BoardColumns, BoardHeader } from "@/components/board-view";
+import { BoardColumns, BoardHeader, TaskDetails } from "@/components/board-view";
 
 export default function BoardViewPage() {
   const params = useParams();
@@ -18,6 +18,7 @@ export default function BoardViewPage() {
   const isClient = useIsClient();
   const [board, setBoard] = useState<Board | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -186,6 +187,14 @@ export default function BoardViewPage() {
   // Mock available users for now (you can replace with actual data later)
   const availableUsers = board?.allowed_users || [];
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+  };
+
+  const handleCloseTaskDetails = () => {
+    setSelectedTask(null);
+  };
+
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* Board Header */}
@@ -210,7 +219,16 @@ export default function BoardViewPage() {
         categories={board.categories}
         availableUsers={availableUsers}
         onAddTask={handleAddTask}
+        onTaskClick={handleTaskClick}
       />
+
+      {/* Task Details Panel - Overlay */}
+      {selectedTask && (
+        <TaskDetails 
+          task={selectedTask} 
+          onClose={handleCloseTaskDetails}
+        />
+      )}
     </div>
   );
 }

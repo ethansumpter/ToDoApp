@@ -13,9 +13,10 @@ interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
+  onClick?: (task: Task) => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onDelete, onClick }: TaskCardProps) {
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
 
   // Fetch assignee name if task has an assignee
@@ -58,7 +59,10 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
       day: 'numeric'
     });
   };  return (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow group">
+    <Card 
+      className="cursor-pointer hover:shadow-md transition-shadow group" 
+      onClick={() => onClick?.(task)}
+    >
       <CardContent className="p-3 space-y-3">
         {/* Header with Task Name */}
         <div className="flex items-start justify-between gap-2">
