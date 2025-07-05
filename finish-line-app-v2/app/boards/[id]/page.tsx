@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Board } from "@/types/boards";
 import { Task, TaskFormData } from "@/types/tasks";
 import { getBoardByBoardCode } from "@/lib/supabase/boards";
+import { createTask, getTasksByBoard } from "@/lib/supabase/tasks";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -56,6 +57,27 @@ export default function BoardViewPage() {
         }
 
         setBoard(boardData);
+        
+        // Load existing tasks for this board
+        try {
+          const existingTasks = await getTasksByBoard(boardData.id);
+          const uiTasks: Task[] = existingTasks.map(task => ({
+            id: task.id.toString(),
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            category: task.category,
+            priority: task.priority,
+            deadline: task.deadline,
+            assignee: task.assignee, // Fixed typo
+            createdAt: task.created_at,
+            updatedAt: task.updated_at,
+          }));
+          setTasks(uiTasks);
+        } catch (taskError) {
+          console.error("Error loading tasks:", taskError);
+          // Don't fail the entire board load if tasks fail to load
+        }
       } catch (err) {
         console.error("Error fetching board:", err);
         setError("Failed to load board");
@@ -112,25 +134,53 @@ export default function BoardViewPage() {
 
   const isAdmin = currentUser === board.admin;
 
-  const handleAddTask = (status: string, taskData: TaskFormData) => {
-    // Create a new task with a temporary ID
-    const newTask: Task = {
-      id: Date.now().toString(), // Temporary ID
-      title: taskData.title,
-      status,
-      category: taskData.category,
-      priority: taskData.priority,
-      deadline: taskData.deadline,
-      assignee: taskData.assignee,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Add to local state
-    setTasks(prev => [...prev, newTask]);
+  const handleAddTask = async (status: string, taskData: TaskFormData) => {
+    console.log('handleAddTask called with:', { status, taskData });
     
-    // Log the task data (you can replace this with actual Supabase save later)
-    console.log("Adding task:", newTask);
+    if (!board || !currentUser) {
+      console.log('Missing board or currentUser:', { board: !!board, currentUser: !!currentUser });
+      return;
+    }
+
+    try {
+      // Create task in database
+      const newTaskData = {
+        title: taskData.title,
+        category: taskData.category,
+        status,
+        created_by: currentUser, // UUID field
+        assignee: taskData.assignee, // UUID field (fixed typo)
+        deadline: taskData.deadline,
+        board: board.id,
+        priority: taskData.priority || 'medium',
+      };
+
+      console.log('About to create task with data:', newTaskData);
+
+      const createdTask = await createTask(newTaskData);
+      
+      // Convert the database task to the Task type used by the UI
+      const uiTask: Task = {
+        id: createdTask.id.toString(),
+        title: createdTask.title,
+        description: createdTask.description,
+        status: createdTask.status,
+        category: createdTask.category,
+        priority: createdTask.priority,
+        deadline: createdTask.deadline,
+        assignee: createdTask.assignee, // Fixed typo
+        createdAt: createdTask.created_at,
+        updatedAt: createdTask.updated_at,
+      };
+
+      // Add to local state
+      setTasks(prev => [...prev, uiTask]);
+      
+      console.log("Task created successfully:", createdTask);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      // You might want to show an error notification to the user here
+    }
   };
 
   // Mock available users for now (you can replace with actual data later)

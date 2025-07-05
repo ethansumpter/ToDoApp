@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { AddTaskProps, TaskFormData } from "@/types/tasks";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { getUserProfiles, formatUserDisplayName } from "@/lib/supabase/users";
+import { UserProfile } from "@/types/user";
 
 export function AddTaskInline({ 
   onSave, 
@@ -29,15 +31,37 @@ export function AddTaskInline({
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | undefined>();
   const [deadline, setDeadline] = useState<Date | undefined>();
   const [assignee, setAssignee] = useState<string | undefined>();
+  const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const { userProfile } = useUserProfile();
 
+  // Fetch user profiles for all available users
+  useEffect(() => {
+    const fetchUserProfiles = async () => {
+      if (availableUsers.length > 0) {
+        try {
+          const profiles = await getUserProfiles(availableUsers);
+          setUserProfiles(profiles);
+        } catch (error) {
+          console.error('Error fetching user profiles:', error);
+        }
+      }
+    };
+
+    fetchUserProfiles();
+  }, [availableUsers]);
+
   // Helper function to format user display name
-  const formatUserDisplayName = (userId: string): string => {
+  const getDisplayName = (userId: string): string => {
+    const profile = userProfiles.find(p => p.id === userId);
+    if (profile) {
+      return formatUserDisplayName(profile);
+    }
+    // Fallback to current user if it's them
     if (userProfile && userProfile.id === userId) {
       return `${userProfile.first_name} ${userProfile.last_name.charAt(0)}.`;
     }
-    // For now, just return the user ID if we don't have their profile
+    // Last resort: return the user ID
     return userId;
   };
 
@@ -270,7 +294,7 @@ export function AddTaskInline({
                       className={`w-full justify-start text-xs ${assignee === userId ? 'bg-accent text-accent-foreground' : ''}`}
                       onClick={() => setAssignee(userId)}
                     >
-                      {formatUserDisplayName(userId)}
+                      {getDisplayName(userId)}
                     </Button>
                   ))}
                   {availableUsers.length > 0 && (
