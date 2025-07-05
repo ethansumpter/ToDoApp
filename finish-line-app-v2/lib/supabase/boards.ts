@@ -2,25 +2,62 @@ import { createClient } from './client';
 import { CreateBoardFormData } from '@/types/create-board';
 import { Board } from '@/types/boards';
 
-function generateBoardCode(): string {
-    let char_opt = 'abcdefghijklmnopqrstuvwxyz0123456789';
+async function generateUniqueBoardCode(): Promise<string> {
+    const supabase = createClient();
     let code = '';
-    for (let i = 0; i < 6; i++) {
-        const randomIndex = Math.floor(Math.random() * char_opt.length);
-        code += char_opt[randomIndex];
+    let isUnique = false;
+    
+    // Try up to 10 times to generate a unique code
+    for (let attempts = 0; attempts < 10; attempts++) {
+        let char_opt = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        code = '';
+        for (let i = 0; i < 6; i++) {
+            const randomIndex = Math.floor(Math.random() * char_opt.length);
+            code += char_opt[randomIndex];
+        }
+        
+        // Check if this code already exists
+        const { data, error } = await supabase
+            .from('boards')
+            .select('b_code')
+            .eq('b_code', code)
+            .single();
+        
+        if (error && error.code === 'PGRST116') {
+            // No rows found, code is unique
+            isUnique = true;
+            break;
+        } else if (error) {
+            console.error('Error checking board code uniqueness:', error);
+            // Continue trying with a new code
+        }
     }
+    
+    if (!isUnique) {
+        throw new Error('Unable to generate unique board code after 10 attempts');
+    }
+    
     return code;
 }
 
 export async function createBoard(formData: CreateBoardFormData): Promise<Board> {
   const supabase = createClient();
+  console.log('Starting board creation process...');
   
   // Get the current user
+  console.log('Getting current user...');
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !user) {
+    console.error('Authentication error:', authError);
     throw new Error('User not authenticated');
   }
+  console.log('User authenticated successfully');
+
+  // Generate unique board code
+  console.log('Generating unique board code...');
+  const boardCode = await generateUniqueBoardCode();
+  console.log('Generated board code:', boardCode);
 
   // Prepare board data for database
   const boardData = {
@@ -34,10 +71,11 @@ export async function createBoard(formData: CreateBoardFormData): Promise<Board>
     archived: false,
     allowed_users: [user.id],
     pending_users: [],
-    b_code: generateBoardCode(),
+    b_code: boardCode,
   };
 
   // Insert the board into the database
+  console.log('Inserting board into database...');
   const { data, error } = await supabase
     .from('boards')
     .insert([boardData])
@@ -49,6 +87,7 @@ export async function createBoard(formData: CreateBoardFormData): Promise<Board>
     throw new Error(error.message || 'Failed to create board');
   }
 
+  console.log('Board created successfully:', data);
   return data;
 }
 

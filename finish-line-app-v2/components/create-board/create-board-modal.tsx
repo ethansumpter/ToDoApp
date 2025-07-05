@@ -26,6 +26,7 @@ export function CreateBoardModal({ open, onOpenChange, onSuccess }: CreateBoardM
   const router = useRouter();
 
   const handleSubmit = async (data: CreateBoardFormData) => {
+    console.log('Form submission started at:', new Date().toISOString());
     setIsLoading(true);
     setError(null);
     
@@ -33,7 +34,10 @@ export function CreateBoardModal({ open, onOpenChange, onSuccess }: CreateBoardM
       console.log("Creating board with data:", data);
       
       // Save to Supabase
+      const startTime = Date.now();
       const newBoard = await createBoard(data);
+      const endTime = Date.now();
+      console.log(`Board creation took ${endTime - startTime}ms`);
       console.log("Board created successfully:", newBoard);
       
       // Call success callback if provided
@@ -50,6 +54,7 @@ export function CreateBoardModal({ open, onOpenChange, onSuccess }: CreateBoardM
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+      console.log('Form submission completed at:', new Date().toISOString());
     }
   };
 
