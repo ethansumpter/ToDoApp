@@ -298,7 +298,7 @@ export function TaskDetails({ task, onClose, onTaskUpdate, statuses = [], catego
       
       {/* Task Details Panel - right side */}
       <div 
-        className={`w-1/2 bg-background border-l shadow-2xl flex flex-col h-full transition-transform duration-300 ease-in-out ${
+        className={`w-1/4 bg-background border-l shadow-2xl flex flex-col h-full transition-transform duration-300 ease-in-out ${
           isVisible ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ margin: 0, padding: 0 }}
