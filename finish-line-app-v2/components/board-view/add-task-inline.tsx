@@ -102,7 +102,7 @@ export function AddTaskInline({
     const taskData: TaskFormData = {
       title: title.trim(),
       category,
-      priority: priority || 'medium', // Default to medium if not set
+      priority, // Allow priority to be undefined/null
       deadline: deadline?.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
       assignee
     };

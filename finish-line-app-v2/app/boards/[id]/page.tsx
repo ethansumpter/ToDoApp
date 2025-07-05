@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useIsClient } from "@/hooks/use-is-client";
-import { BoardColumns, BoardHeader, TaskDetails } from "@/components/board-view";
+import { BoardColumns, BoardHeader, TaskDetails, ViewMembersModal } from "@/components/board-view";
 
 export default function BoardViewPage() {
   const params = useParams();
@@ -19,6 +19,7 @@ export default function BoardViewPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showViewMembers, setShowViewMembers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -154,7 +155,7 @@ export default function BoardViewPage() {
         assignee: taskData.assignee, // UUID field (fixed typo)
         deadline: taskData.deadline,
         board: board.id,
-        priority: taskData.priority || 'medium',
+        priority: taskData.priority, // Allow priority to be undefined/null
       };
 
       console.log('About to create task with data:', newTaskData);
@@ -204,6 +205,14 @@ export default function BoardViewPage() {
     setSelectedTask(updatedTask);
   };
 
+  const handleViewMembers = () => {
+    setShowViewMembers(true);
+  };
+
+  const handleCloseViewMembers = () => {
+    setShowViewMembers(false);
+  };
+
   const handleTaskMove = async (taskId: string, sourceStatus: string, targetStatus: string) => {
     if (!board) return;
     
@@ -241,6 +250,7 @@ export default function BoardViewPage() {
           console.log("Opening board settings...");
           // TODO: Implement board settings functionality
         }}
+        onViewMembersClick={handleViewMembers}
       />
 
       {/* Board Columns */}
@@ -263,6 +273,16 @@ export default function BoardViewPage() {
           statuses={board.statuses}
           categories={board.categories}
           availableUsers={availableUsers}
+        />
+      )}
+
+      {/* View Members Modal */}
+      {showViewMembers && currentUser && (
+        <ViewMembersModal
+          open={showViewMembers}
+          onOpenChange={setShowViewMembers}
+          board={board}
+          currentUserId={currentUser}
         />
       )}
     </div>
