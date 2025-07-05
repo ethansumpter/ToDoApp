@@ -1,19 +1,42 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { AddTaskInline } from "./add-task-inline";
+import { TaskCard } from "./task-card";
+import { Task, TaskFormData } from "@/types/tasks";
 
 interface BoardColumnProps {
   status: string;
-  taskCount?: number;
-  onAddTask?: (status: string) => void;
+  tasks?: Task[];
+  categories?: string[];
+  availableUsers?: string[];
+  onAddTask?: (status: string, taskData: TaskFormData) => void;
 }
 
-export function BoardColumn({ status, taskCount = 0, onAddTask }: BoardColumnProps) {
+export function BoardColumn({ 
+  status, 
+  tasks = [], 
+  categories = [], 
+  availableUsers = [], 
+  onAddTask 
+}: BoardColumnProps) {
+  const [isAddingTask, setIsAddingTask] = useState(false);
+
   const handleAddTask = () => {
-    onAddTask?.(status);
+    setIsAddingTask(true);
+  };
+
+  const handleSaveTask = (taskData: TaskFormData) => {
+    onAddTask?.(status, taskData);
+    setIsAddingTask(false);
+  };
+
+  const handleCancelTask = () => {
+    setIsAddingTask(false);
   };
 
   return (
@@ -22,25 +45,37 @@ export function BoardColumn({ status, taskCount = 0, onAddTask }: BoardColumnPro
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">{status}</CardTitle>
           <Badge variant="secondary" className="text-xs">
-            {taskCount}
+            {tasks.length}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col space-y-3 min-h-0">
-        {/* Add task button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-muted-foreground border-dashed border-2 h-auto py-3 flex-shrink-0"
-          onClick={handleAddTask}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add task
-        </Button>
+        {/* Add task button or inline form */}
+        {isAddingTask ? (
+          <AddTaskInline
+            status={status}
+            onSave={handleSaveTask}
+            onCancel={handleCancelTask}
+            categories={categories}
+            availableUsers={availableUsers}
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-muted-foreground border-dashed border-2 h-auto py-3 flex-shrink-0"
+            onClick={handleAddTask}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add task
+          </Button>
+        )}
         
-        {/* Tasks will be rendered here */}
+        {/* Tasks */}
         <div className="flex-1 space-y-2 overflow-y-auto">
-          {/* Placeholder for tasks */}
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
         </div>
       </CardContent>
     </Card>

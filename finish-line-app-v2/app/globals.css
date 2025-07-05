@@ -73,4 +73,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Calendar component custom properties */
+  .group\/calendar {
+    --cell-size: 2rem;
+  }
 }

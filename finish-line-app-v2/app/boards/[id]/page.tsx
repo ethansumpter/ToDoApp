@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Board } from "@/types/boards";
+import { Task, TaskFormData } from "@/types/tasks";
 import { getBoardByBoardCode } from "@/lib/supabase/boards";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,12 @@ import { ArrowLeft } from "lucide-react";
 import { useIsClient } from "@/hooks/use-is-client";
 import { BoardColumns, BoardHeader } from "@/components/board-view";
 
-interface BoardViewPageProps {}
-
 export default function BoardViewPage() {
   const params = useParams();
   const router = useRouter();
   const isClient = useIsClient();
   const [board, setBoard] = useState<Board | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -98,12 +98,43 @@ export default function BoardViewPage() {
     );
   }
 
+  // Prevent hydration mismatches
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   const isAdmin = currentUser === board.admin;
 
-  const handleAddTask = (status: string) => {
-    console.log("Adding task to status:", status);
-    // TODO: Implement add task functionality
+  const handleAddTask = (status: string, taskData: TaskFormData) => {
+    // Create a new task with a temporary ID
+    const newTask: Task = {
+      id: Date.now().toString(), // Temporary ID
+      title: taskData.title,
+      status,
+      category: taskData.category,
+      priority: taskData.priority,
+      deadline: taskData.deadline,
+      assignee: taskData.assignee,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Add to local state
+    setTasks(prev => [...prev, newTask]);
+    
+    // Log the task data (you can replace this with actual Supabase save later)
+    console.log("Adding task:", newTask);
   };
+
+  // Mock available users for now (you can replace with actual data later)
+  const availableUsers = board?.allowed_users || [];
 
   return (
     <div className="flex flex-col h-full space-y-6">
@@ -125,6 +156,9 @@ export default function BoardViewPage() {
       {/* Board Columns */}
       <BoardColumns 
         statuses={board.statuses} 
+        tasks={tasks}
+        categories={board.categories}
+        availableUsers={availableUsers}
         onAddTask={handleAddTask}
       />
     </div>
