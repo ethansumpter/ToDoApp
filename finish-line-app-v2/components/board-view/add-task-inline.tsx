@@ -140,14 +140,6 @@ export function AddTaskInline({
               </PopoverTrigger>
               <PopoverContent className="w-40 p-2">
                 <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`w-full justify-start text-xs ${!category ? 'bg-accent text-accent-foreground' : ''}`}
-                    onClick={() => setCategory(undefined)}
-                  >
-                    No category
-                  </Button>
                   {categories.map((cat) => (
                     <Button
                       key={cat}
@@ -159,6 +151,17 @@ export function AddTaskInline({
                       {cat}
                     </Button>
                   ))}
+                  {categories.length > 0 && (
+                    <div className="border-t border-border my-1" />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`w-full justify-start text-xs ${!category ? 'bg-accent text-accent-foreground' : ''}`}
+                    onClick={() => setCategory(undefined)}
+                  >
+                    No category
+                  </Button>
                 </div>
               </PopoverContent>
             </Popover>
@@ -178,14 +181,6 @@ export function AddTaskInline({
               </PopoverTrigger>
               <PopoverContent className="w-32 p-2">
                 <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`w-full justify-start text-xs ${!priority ? 'bg-accent text-accent-foreground' : ''}`}
-                    onClick={() => setPriority(undefined)}
-                  >
-                    No priority
-                  </Button>
                   {['low', 'medium', 'high'].map((p) => (
                     <Button
                       key={p}
@@ -199,6 +194,15 @@ export function AddTaskInline({
                       </Badge>
                     </Button>
                   ))}
+                  <div className="border-t border-border my-1" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`w-full justify-start text-xs ${!priority ? 'bg-accent text-accent-foreground' : ''}`}
+                    onClick={() => setPriority(undefined)}
+                  >
+                    No priority
+                  </Button>
                 </div>
               </PopoverContent>
             </Popover>
@@ -258,14 +262,6 @@ export function AddTaskInline({
               </PopoverTrigger>
               <PopoverContent className="w-40 p-2">
                 <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`w-full justify-start text-xs ${!assignee ? 'bg-accent text-accent-foreground' : ''}`}
-                    onClick={() => setAssignee(undefined)}
-                  >
-                    Unassigned
-                  </Button>
                   {availableUsers.map((userId) => (
                     <Button
                       key={userId}
@@ -277,6 +273,17 @@ export function AddTaskInline({
                       {formatUserDisplayName(userId)}
                     </Button>
                   ))}
+                  {availableUsers.length > 0 && (
+                    <div className="border-t border-border my-1" />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`w-full justify-start text-xs ${!assignee ? 'bg-accent text-accent-foreground' : ''}`}
+                    onClick={() => setAssignee(undefined)}
+                  >
+                    Unassigned
+                  </Button>
                 </div>
               </PopoverContent>
             </Popover>
