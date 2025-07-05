@@ -63,7 +63,6 @@ export function BoardCard({
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1" onClick={() => onBoardClick(board.id)}>
             <CardTitle className="text-base">{board.name}</CardTitle>
-            <p className="text-xs text-muted-foreground">{board.subject}</p>
             {board.description && (
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {board.description}
