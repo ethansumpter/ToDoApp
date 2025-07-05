@@ -12,6 +12,7 @@ interface BoardHeaderProps {
   isAdmin: boolean;
   onBackClick: () => void;
   onSettingsClick?: () => void;
+  onViewMembersClick?: () => void;
 }
 
 export function BoardHeader({
@@ -22,7 +23,8 @@ export function BoardHeader({
   deadline,
   isAdmin,
   onBackClick,
-  onSettingsClick
+  onSettingsClick,
+  onViewMembersClick
 }: BoardHeaderProps) {
   return (
     <div className="flex items-center justify-between flex-shrink-0">
@@ -54,6 +56,7 @@ export function BoardHeader({
         deadline={deadline}
         isAdmin={isAdmin}
         onSettingsClick={onSettingsClick}
+        onViewMembersClick={onViewMembersClick}
       />
     </div>
   );

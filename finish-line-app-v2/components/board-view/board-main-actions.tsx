@@ -8,22 +8,29 @@ interface BoardMainActionsProps {
   deadline?: string;
   isAdmin: boolean;
   onSettingsClick?: () => void;
+  onViewMembersClick?: () => void;
 }
 
 export function BoardMainActions({
   allowedUsersCount,
   deadline,
   isAdmin,
-  onSettingsClick
+  onSettingsClick,
+  onViewMembersClick
 }: BoardMainActionsProps) {
   const isClient = useIsClient();
 
   return (
     <div className="flex items-center gap-3">
-      <Badge variant="outline" className="h-8 px-3 py-1">
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 px-3"
+        onClick={onViewMembersClick}
+      >
         <Users className="h-3 w-3 mr-2" />
         {allowedUsersCount} member{allowedUsersCount !== 1 ? 's' : ''}
-      </Badge>
+      </Button>
       
       {deadline && (
         <Badge variant="outline" className="h-8 px-3 py-1">
