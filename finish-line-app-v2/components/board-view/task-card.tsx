@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Tag, Users, MoreHorizontal } from "lucide-react";
 import { Task } from "@/types/tasks";
+import { useState, useEffect } from "react";
+import { getUserProfiles, formatUserDisplayName } from "@/lib/supabase/users";
+import { UserProfile } from "@/types/user";
 
 interface TaskCardProps {
   task: Task;
@@ -13,6 +16,31 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+  const [assigneeName, setAssigneeName] = useState<string | null>(null);
+
+  // Fetch assignee name if task has an assignee
+  useEffect(() => {
+    const fetchAssigneeName = async () => {
+      if (task.assignee) {
+        try {
+          const profiles = await getUserProfiles([task.assignee]);
+          if (profiles.length > 0) {
+            setAssigneeName(formatUserDisplayName(profiles[0]));
+          } else {
+            setAssigneeName(task.assignee); // Fallback to ID if profile not found
+          }
+        } catch (error) {
+          console.error('Error fetching assignee profile:', error);
+          setAssigneeName(task.assignee); // Fallback to ID on error
+        }
+      } else {
+        setAssigneeName(null);
+      }
+    };
+
+    fetchAssigneeName();
+  }, [task.assignee]);
+
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-800 border-red-200';
@@ -31,10 +59,10 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     });
   };  return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow group">
-      <CardContent className="p-3 space-y-2">
-        {/* Header */}
+      <CardContent className="p-3 space-y-3">
+        {/* Header with Task Name */}
         <div className="flex items-start justify-between gap-2">
-          <h4 className="text-sm font-medium leading-tight flex-1">
+          <h4 className="text-sm font-semibold leading-tight flex-1 text-foreground">
             {task.title}
           </h4>
           <Button
@@ -57,46 +85,38 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           </p>
         )}
 
-        {/* Meta Information */}
+        {/* Badge Information */}
         <div className="flex items-center gap-1 flex-wrap">
-          {/* Priority */}
+          {/* Priority Badge */}
           {task.priority && (
             <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
               {capitalize(task.priority)}
             </Badge>
           )}
-        </div>
 
-        {/* Footer Icons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            {/* Category */}
-            {task.category && (
-              <button className="relative cursor-pointer">
-                <div className="bg-black rounded-full p-1">
-                  <Tag className="h-3 w-3 text-white" />
-                </div>
-              </button>
-            )}
+          {/* Category Badge */}
+          {task.category && (
+            <Badge variant="secondary" className="text-xs">
+              <Tag className="h-3 w-3 mr-1" />
+              {task.category}
+            </Badge>
+          )}
 
-            {/* Deadline */}
-            {task.deadline && (
-              <button className="relative cursor-pointer">
-                <div className="bg-black rounded-full p-1">
-                  <Calendar className="h-3 w-3 text-white" />
-                </div>
-              </button>
-            )}
+          {/* Deadline Badge */}
+          {task.deadline && (
+            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+              <Calendar className="h-3 w-3 mr-1" />
+              {formatDate(task.deadline)}
+            </Badge>
+          )}
 
-            {/* Assignee */}
-            {task.assignee && (
-              <button className="relative cursor-pointer">
-                <div className="bg-black rounded-full p-1">
-                  <Users className="h-3 w-3 text-white" />
-                </div>
-              </button>
-            )}
-          </div>
+          {/* Assignee Badge */}
+          {task.assignee && assigneeName && (
+            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+              <Users className="h-3 w-3 mr-1" />
+              {assigneeName}
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>
