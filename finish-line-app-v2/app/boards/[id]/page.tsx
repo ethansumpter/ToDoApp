@@ -71,6 +71,7 @@ export default function BoardViewPage() {
             priority: task.priority,
             deadline: task.deadline,
             assignee: task.assignee, // Fixed typo
+            createdBy: task.created_by || undefined, // Handle null/empty values
             createdAt: task.created_at,
             updatedAt: task.updated_at,
           }));
@@ -170,6 +171,7 @@ export default function BoardViewPage() {
         priority: createdTask.priority,
         deadline: createdTask.deadline,
         assignee: createdTask.assignee, // Fixed typo
+        createdBy: createdTask.created_by || undefined, // Handle null/empty values
         createdAt: createdTask.created_at,
         updatedAt: createdTask.updated_at,
       };

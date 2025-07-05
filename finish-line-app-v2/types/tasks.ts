@@ -7,6 +7,7 @@ export interface Task {
   priority?: 'low' | 'medium' | 'high';
   deadline?: string;
   assignee?: string;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }

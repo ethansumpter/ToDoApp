@@ -16,6 +16,7 @@ interface TaskDetailsProps {
 
 export function TaskDetails({ task, onClose }: TaskDetailsProps) {
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
+  const [createdByName, setCreatedByName] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   // Animation state management
@@ -29,28 +30,46 @@ export function TaskDetails({ task, onClose }: TaskDetailsProps) {
     setTimeout(onClose, 300);
   };
 
-  // Fetch assignee name if task has an assignee
+  // Fetch user names if task has assignee or createdBy
   useEffect(() => {
-    const fetchAssigneeName = async () => {
-      if (task.assignee) {
+    const fetchUserNames = async () => {
+      const userIds = [];
+      if (task.assignee) userIds.push(task.assignee);
+      if (task.createdBy) userIds.push(task.createdBy);
+      
+      if (userIds.length > 0) {
         try {
-          const profiles = await getUserProfiles([task.assignee]);
-          if (profiles.length > 0) {
-            setAssigneeName(formatUserDisplayName(profiles[0]));
-          } else {
-            setAssigneeName(task.assignee);
+          const profiles = await getUserProfiles(userIds);
+          
+          // Set assignee name
+          if (task.assignee) {
+            const assigneeProfile = profiles.find(p => p.id === task.assignee);
+            if (assigneeProfile) {
+              setAssigneeName(formatUserDisplayName(assigneeProfile));
+            } else {
+              setAssigneeName(task.assignee);
+            }
+          }
+          
+          // Set created by name
+          if (task.createdBy) {
+            const createdByProfile = profiles.find(p => p.id === task.createdBy);
+            if (createdByProfile) {
+              setCreatedByName(formatUserDisplayName(createdByProfile));
+            } else {
+              setCreatedByName(task.createdBy);
+            }
           }
         } catch (error) {
-          console.error('Error fetching assignee profile:', error);
-          setAssigneeName(task.assignee);
+          console.error('Error fetching user profiles:', error);
+          if (task.assignee) setAssigneeName(task.assignee);
+          if (task.createdBy) setCreatedByName(task.createdBy);
         }
-      } else {
-        setAssigneeName(null);
       }
     };
 
-    fetchAssigneeName();
-  }, [task.assignee]);
+    fetchUserNames();
+  }, [task.assignee, task.createdBy]);
 
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
@@ -126,11 +145,18 @@ export function TaskDetails({ task, onClose }: TaskDetailsProps) {
             </div>
 
             {/* Description */}
-            {task.description && (
+            {task.description ? (
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">Description</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {task.description}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h4 className="text-sm font-medium text-foreground mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground italic">
+                  No description provided
                 </p>
               </div>
             )}
@@ -157,6 +183,17 @@ export function TaskDetails({ task, onClose }: TaskDetailsProps) {
                     <Badge variant="secondary" className="text-xs">
                       <Tag className="h-3 w-3 mr-1" />
                       {task.category}
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Created by */}
+                {task.createdBy && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Created by</span>
+                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                      <Users className="h-3 w-3 mr-1" />
+                      {createdByName || task.createdBy}
                     </Badge>
                   </div>
                 )}

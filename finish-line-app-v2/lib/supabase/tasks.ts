@@ -57,7 +57,7 @@ export async function getTasksByBoard(boardId: number) {
 
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select('id, title, description, status, category, priority, deadline, assignee, created_by, created_at, updated_at')
     .eq('board', boardId)
     .order('created_at', { ascending: false });
 
