@@ -6,3 +6,5 @@ export { AddTaskInline } from "./add-task-inline";
 export { TaskCard } from "./task-card";
 export { TaskDetails } from "./task-details";
 export { ViewMembersModal } from "./view-members-modal";
+export { TaskSortDropdown } from "./task-sort-dropdown";
+export type { SortOption } from "./task-sort-dropdown";

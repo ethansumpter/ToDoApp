@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useIsClient } from "@/hooks/use-is-client";
-import { BoardColumns, BoardHeader, TaskDetails, ViewMembersModal } from "@/components/board-view";
+import { BoardColumns, BoardHeader, TaskDetails, ViewMembersModal, TaskSortDropdown, SortOption } from "@/components/board-view";
 
 export default function BoardViewPage() {
   const params = useParams();
@@ -20,6 +20,7 @@ export default function BoardViewPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showViewMembers, setShowViewMembers] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('date-created');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -198,6 +199,55 @@ export default function BoardViewPage() {
     setSelectedTask(null);
   };
 
+  // Sort tasks based on selected option
+  const sortTasks = (tasks: Task[], sortOption: SortOption): Task[] => {
+    const sortedTasks = [...tasks];
+    
+    switch (sortOption) {
+      case 'date-created':
+        return sortedTasks.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      
+      case 'date-modified':
+        return sortedTasks.sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      
+      case 'priority':
+        const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+        return sortedTasks.sort((a, b) => {
+          const priorityA = a.priority ? priorityOrder[a.priority] : 0;
+          const priorityB = b.priority ? priorityOrder[b.priority] : 0;
+          // If priorities are equal, sort by creation date (most recent first)
+          if (priorityA === priorityB) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          }
+          return priorityB - priorityA; // Higher priority first
+        });
+      
+      case 'deadline':
+        return sortedTasks.sort((a, b) => {
+          // Tasks with deadlines come first, sorted by closest deadline
+          if (a.deadline && b.deadline) {
+            const dateA = new Date(a.deadline).getTime();
+            const dateB = new Date(b.deadline).getTime();
+            return dateA - dateB; // Closest deadline first
+          }
+          if (a.deadline && !b.deadline) return -1; // Task with deadline comes first
+          if (!a.deadline && b.deadline) return 1; // Task with deadline comes first
+          // Both have no deadline, sort by creation date
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      
+      default:
+        return sortedTasks;
+    }
+  };
+
+  // Apply sorting to tasks
+  const sortedTasks = sortTasks(tasks, sortBy);
+
   const handleTaskUpdate = (updatedTask: Task) => {
     setTasks(prev => prev.map(task => 
       task.id === updatedTask.id ? updatedTask : task
@@ -253,10 +303,18 @@ export default function BoardViewPage() {
         onViewMembersClick={handleViewMembers}
       />
 
+      {/* Sort Dropdown */}
+      <div className="flex justify-end mb-6 px-1">
+        <TaskSortDropdown 
+          value={sortBy} 
+          onValueChange={setSortBy}
+        />
+      </div>
+
       {/* Board Columns */}
       <BoardColumns 
         statuses={board.statuses} 
-        tasks={tasks}
+        tasks={sortedTasks}
         categories={board.categories}
         availableUsers={availableUsers}
         onAddTask={handleAddTask}

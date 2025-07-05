@@ -22,7 +22,7 @@ export function BoardColumns({
   onTaskClick,
   onTaskMove
 }: BoardColumnsProps) {
-  // Group tasks by status
+  // Group tasks by status while maintaining sort order
   const tasksByStatus = tasks.reduce((acc, task) => {
     if (!acc[task.status]) {
       acc[task.status] = [];
