@@ -35,6 +35,11 @@ export default function BoardsPage() {
 
   const handleBoardClick = (boardId: number) => {
     console.log("Opening board:", boardId);
+    // TODO: In a real implementation, you would:
+    // 1. Fetch the board's share code from the database
+    // 2. Navigate to `/boards/${shareCode}`
+    // For now, we'll show a placeholder since we're using dummy data
+    alert(`Would navigate to board view for board ID: ${boardId}`);
   };
 
   return (

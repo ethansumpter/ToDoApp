@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   DashboardHeader,
   StatsCards,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/dashboard-data";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const totalIncompleteThisWeek = upcomingTasks.length;
   const totalBoards = userBoards.length;
   const averageProgress = Math.round(
@@ -29,10 +31,16 @@ export default function DashboardPage() {
 
   const handleViewAllBoards = () => {
     console.log("Viewing all boards...");
+    router.push("/boards");
   };
 
   const handleBoardClick = (boardId: number) => {
     console.log("Clicked board:", boardId);
+    // TODO: In a real implementation, you would:
+    // 1. Fetch the board's share code from the database
+    // 2. Navigate to `/boards/${shareCode}`
+    // For now, we'll show a placeholder since we're using dummy data
+    alert(`Would navigate to board view for board ID: ${boardId}`);
   };
 
   const handleEditBoard = (boardId: number) => {

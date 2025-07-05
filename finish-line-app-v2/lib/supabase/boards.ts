@@ -97,6 +97,27 @@ export async function getBoardById(boardId: number): Promise<Board | null> {
   return data;
 }
 
+export async function getBoardByBoardCode(shareCode: string): Promise<Board | null> {
+  const supabase = createClient();
+  
+  const { data, error } = await supabase
+    .from('boards')
+    .select('*')
+    .eq('b_code', shareCode)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows found
+      return null;
+    }
+    console.error('Error fetching board by board code:', error);
+    throw new Error(error.message || 'Failed to fetch board');
+  }
+
+  return data;
+}
+
 export async function updateBoard(boardId: number, updates: Partial<Board>): Promise<Board> {
   const supabase = createClient();
   

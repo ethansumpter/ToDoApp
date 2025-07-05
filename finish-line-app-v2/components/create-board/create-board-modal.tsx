@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ export function CreateBoardModal({ open, onOpenChange, onSuccess }: CreateBoardM
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isClient = useIsClient();
+  const router = useRouter();
 
   const handleSubmit = async (data: CreateBoardFormData) => {
     setIsLoading(true);
@@ -39,6 +41,9 @@ export function CreateBoardModal({ open, onOpenChange, onSuccess }: CreateBoardM
       
       // Close modal
       onOpenChange(false);
+      
+      // Navigate to the newly created board
+      router.push(`/boards/${newBoard.b_code}`);
     } catch (error) {
       console.error("Error creating board:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to create board";
