@@ -21,14 +21,14 @@ export interface Board {
   b_code: string;
   title: string;
   description?: string;
-  admin: string;
+  admin: string; // UUID string from auth.users
   archived: boolean;
   allowed_users: string[];
   pending_users: string[];
   deadline?: string;
   statuses: string[];
   categories: string[];
-  icon: string;
+  icon?: string;
   updated_at: string;
 }
 

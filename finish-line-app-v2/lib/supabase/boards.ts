@@ -23,14 +23,14 @@ export async function createBoard(formData: CreateBoardFormData): Promise<Board>
   }
 
   // Prepare board data for database
-  const boardData: Omit<Board, 'id' | 'created_at' | 'updated_at'> = {
+  const boardData = {
     title: formData.title,
     description: formData.description,
     deadline: formData.deadline,
     icon: formData.icon,
     categories: formData.taskCategories,
     statuses: formData.taskStatuses,
-    admin: user.id,
+    admin: user.id, // This should be the user ID from auth
     archived: false,
     allowed_users: [user.id],
     pending_users: [],
@@ -69,7 +69,7 @@ export async function getUserBoards(userId?: string): Promise<Board[]> {
   const { data, error } = await supabase
     .from('boards')
     .select('*')
-    .eq('user_id', targetUserId)
+    .eq('admin', targetUserId)
     .order('created_at', { ascending: false });
 
   if (error) {
