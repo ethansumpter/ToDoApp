@@ -82,13 +82,6 @@ export function TaskCard({ task, onEdit, onDelete, onClick }: TaskCardProps) {
           </Button>
         </div>
 
-        {/* Description */}
-        {task.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {task.description}
-          </p>
-        )}
-
         {/* Badge Information */}
         <div className="flex items-center gap-1 flex-wrap">
           {/* Priority Badge */}

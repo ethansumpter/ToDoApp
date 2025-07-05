@@ -237,6 +237,9 @@ export default function BoardViewPage() {
           task={selectedTask} 
           onClose={handleCloseTaskDetails}
           onTaskUpdate={handleTaskUpdate}
+          statuses={board.statuses}
+          categories={board.categories}
+          availableUsers={availableUsers}
         />
       )}
     </div>
