@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Calendar, Tag, Users, X, Clock, Save, Loader2 } from "lucide-react";
 import { Task } from "@/types/tasks";
 import { getUserProfiles, formatUserDisplayName } from "@/lib/supabase/users";
@@ -91,14 +91,6 @@ export function TaskDetails({ task, onClose, onTaskUpdate }: TaskDetailsProps) {
     } else if (e.key === 'Escape') {
       setTitle(task.title);
       setIsEditingTitle(false);
-    }
-  };
-
-  // Handle Escape key for description
-  const handleDescriptionKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setDescription(task.description || '');
-      setIsEditingDescription(false);
     }
   };
 
@@ -237,14 +229,11 @@ export function TaskDetails({ task, onClose, onTaskUpdate }: TaskDetailsProps) {
             <div>
               <h4 className="text-sm font-medium text-foreground mb-2">Description</h4>
               {isEditingDescription ? (
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                <RichTextEditor
+                  content={description}
+                  onChange={setDescription}
                   onBlur={handleDescriptionBlur}
-                  onKeyDown={handleDescriptionKeyDown}
                   placeholder="Add a description..."
-                  className="min-h-[100px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-ring"
-                  autoFocus
                 />
               ) : (
                 <div
@@ -252,7 +241,10 @@ export function TaskDetails({ task, onClose, onTaskUpdate }: TaskDetailsProps) {
                   onClick={() => setIsEditingDescription(true)}
                 >
                   {description ? (
-                    <span>{description}</span>
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: description }}
+                    />
                   ) : (
                     <span className="italic">No description provided. Click to add one.</span>
                   )}
