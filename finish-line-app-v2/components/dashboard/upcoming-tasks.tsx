@@ -39,6 +39,40 @@ const getDaysUntilDue = (dueDate: string) => {
   return diffDays;
 };
 
+const formatDueDate = (dueDate: string) => {
+  const daysUntil = getDaysUntilDue(dueDate);
+  
+  if (daysUntil < 0) {
+    return {
+      text: "Overdue",
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200"
+    };
+  } else if (daysUntil === 0) {
+    return {
+      text: "Today",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200"
+    };
+  } else if (daysUntil === 1) {
+    return {
+      text: "Tomorrow",
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+      borderColor: "border-yellow-200"
+    };
+  } else {
+    return {
+      text: `${daysUntil} days`,
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/20",
+      borderColor: "border-muted"
+    };
+  }
+};
+
 export function UpcomingTasks({ tasks, onViewAll, onTaskClick }: UpcomingTasksProps) {
   const isClient = useIsClient();
 
@@ -53,11 +87,17 @@ export function UpcomingTasks({ tasks, onViewAll, onTaskClick }: UpcomingTasksPr
       <CardContent className="space-y-3">
         {tasks.slice(0, 5).map((task) => {
           const daysUntil = isClient ? getDaysUntilDue(task.dueDate) : 0;
+          const dateFormat = isClient ? formatDueDate(task.dueDate) : {
+            text: "Loading...",
+            color: "text-muted-foreground",
+            bgColor: "bg-muted/20",
+            borderColor: "border-muted"
+          };
           
           return (
             <div 
               key={task.id} 
-              className="flex items-start space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+              className={`flex items-start space-x-3 p-3 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer border ${dateFormat.borderColor} ${dateFormat.bgColor}`}
               onClick={() => onTaskClick?.(task.id)}
             >
               <div className="flex-1 space-y-1">
@@ -67,12 +107,12 @@ export function UpcomingTasks({ tasks, onViewAll, onTaskClick }: UpcomingTasksPr
                   <Badge variant={getPriorityColor(task.priority)} className="text-xs px-1">
                     {task.priority}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {isClient ? `${daysUntil} days` : "Loading..."}
+                  <span className={`text-xs font-medium ${dateFormat.color}`}>
+                    {dateFormat.text}
                   </span>
                 </div>
               </div>
-              {isClient && daysUntil <= 2 && (
+              {isClient && daysUntil <= 0 && (
                 <AlertCircle className="h-4 w-4 text-red-500 mt-1" />
               )}
             </div>

@@ -10,17 +10,19 @@ import {
   RecentActivity
 } from "@/components/dashboard";
 import { 
-  upcomingTasks, 
   recentActivity, 
   currentUser 
 } from "@/lib/dashboard-data";
 import { getUserProjectBoards } from "@/lib/dashboard-boards";
+import { getUpcomingBoardDeadlines } from "@/lib/dashboard-deadlines";
 import { ProjectBoard } from "@/types/boards";
+import { UpcomingTask } from "@/components/dashboard/upcoming-tasks";
 import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [userBoards, setUserBoards] = useState<ProjectBoard[]>([]);
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState<UpcomingTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
@@ -53,6 +55,10 @@ export default function DashboardPage() {
         // Fetch user's boards
         const boards = await getUserProjectBoards(user.id);
         setUserBoards(boards);
+        
+        // Generate upcoming deadlines from boards
+        const deadlines = getUpcomingBoardDeadlines(boards);
+        setUpcomingDeadlines(deadlines);
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -81,6 +87,10 @@ export default function DashboardPage() {
       try {
         const boards = await getUserProjectBoards(currentUserId);
         setUserBoards(boards);
+        
+        // Update upcoming deadlines when boards are refreshed
+        const deadlines = getUpcomingBoardDeadlines(boards);
+        setUpcomingDeadlines(deadlines);
       } catch (error) {
         console.error("Error refreshing boards:", error);
       }
@@ -99,7 +109,7 @@ export default function DashboardPage() {
     );
   }
 
-  const totalIncompleteThisWeek = upcomingTasks.length;
+  const totalIncompleteThisWeek = upcomingDeadlines.length;
   const totalBoards = userBoards.length;
   const averageProgress = userBoards.length > 0 ? Math.round(
     userBoards.reduce((acc, board) => acc + board.progress, 0) / userBoards.length
@@ -206,7 +216,7 @@ export default function DashboardPage() {
 
         <div className="space-y-6">
           <UpcomingTasks
-            tasks={upcomingTasks}
+            tasks={upcomingDeadlines}
             onViewAll={handleViewAllTasks}
             onTaskClick={handleTaskClick}
           />
