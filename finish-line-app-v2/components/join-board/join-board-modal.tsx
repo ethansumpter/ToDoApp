@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { UserPlus, Users } from "lucide-react";
 
 interface JoinBoardModalProps {
@@ -23,7 +23,6 @@ interface JoinBoardModalProps {
 export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
   const [boardCode, setBoardCode] = useState<string[]>(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const router = useRouter();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -35,8 +34,8 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
   }, [open]);
 
   const handleInputChange = (index: number, value: string) => {
-    // Only allow alphanumeric characters and convert to uppercase
-    const sanitizedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    // Only allow alphanumeric characters and convert to lowercase
+    const sanitizedValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     if (sanitizedValue.length <= 1) {
       const newBoardCode = [...boardCode];
@@ -60,7 +59,7 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
     if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       navigator.clipboard.readText().then(text => {
-        const cleanText = text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+        const cleanText = text.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
         const newBoardCode = [...boardCode];
         
         for (let i = 0; i < 6; i++) {
@@ -82,88 +81,125 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
     const fullBoardCode = boardCode.join('');
     
     if (fullBoardCode.length !== 6) {
-      toast({
-        title: "Incomplete board code",
-        description: "Please enter all 6 characters of the board code.",
-        variant: "destructive",
-      });
+      toast.error("Please enter all 6 characters of the board code.");
       return;
     }
 
     setIsLoading(true);
     
     try {
-      // First, check if the board exists
-      const { getBoardByBoardCode } = await import("@/lib/supabase/boards");
-      const board = await getBoardByBoardCode(fullBoardCode);
+      console.log("Attempting to join board with code:", fullBoardCode);
       
-      if (!board) {
-        toast({
-          title: "Board not found",
-          description: "No board found with that code. Please check the code and try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Get current user
+      // Get current user first
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
+      console.log("Current user:", user?.id);
+      
       if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to join a board.",
-          variant: "destructive",
+        toast.error("Please log in to join a board.", {
+          style: { zIndex: 9999 },
         });
+        setIsLoading(false);
         return;
       }
 
+      // Try to find the board using direct query
+      console.log("Querying board with code:", fullBoardCode);
+      const { data: boards, error: boardError } = await supabase
+        .from('boards')
+        .select('*')
+        .eq('b_code', fullBoardCode);
+
+      console.log("Board query result:", { boards, boardError });
+      
+      if (boardError) {
+        console.error("Board query error:", boardError);
+        console.error("Error details:", JSON.stringify(boardError, null, 2));
+        
+        toast.error(`Database error: ${boardError.message || 'Unknown error'}`, {
+          style: { zIndex: 9999 },
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!boards || boards.length === 0) {
+        console.log("No boards found with that code");
+        toast.error("No board exists with that code. Please double-check the 6-character code and try again.", {
+          style: { zIndex: 99999 },
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const board = boards[0];
+      console.log("Found board:", board);
+
       // Check if user is already a member
-      if (board.allowed_users.includes(user.id)) {
-        toast({
-          title: "Already a member",
-          description: "You are already a member of this board.",
-          variant: "default",
+      if (board.allowed_users && board.allowed_users.includes(user.id)) {
+        toast.success("You are already a member of this board.", {
+          style: { zIndex: 9999 },
         });
         // Navigate to the board
         router.push(`/boards/${board.b_code}`);
-        onOpenChange(false);
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 100);
+        setIsLoading(false);
         return;
       }
 
       // Check if user already has a pending request
-      if (board.pending_users.includes(user.id)) {
-        toast({
-          title: "Request pending",
-          description: "Your request to join this board is still pending approval.",
-          variant: "default",
+      if (board.pending_users && board.pending_users.includes(user.id)) {
+        toast.info("Your request to join this board is still pending approval.", {
+          style: { zIndex: 9999 },
         });
-        onOpenChange(false);
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 100);
+        setIsLoading(false);
         return;
       }
 
-      // Add user to pending users
-      const { updateBoard } = await import("@/lib/supabase/boards");
-      await updateBoard(board.id, {
-        pending_users: [...board.pending_users, user.id]
-      });
+      // Add user to pending users using direct update
+      const updatedPendingUsers = board.pending_users ? [...board.pending_users, user.id] : [user.id];
+      
+      console.log("Updating pending users:", updatedPendingUsers);
+      
+      const { error: updateError } = await supabase
+        .from('boards')
+        .update({ pending_users: updatedPendingUsers })
+        .eq('id', board.id);
 
-      toast({
-        title: "Join request sent",
-        description: "Your request to join the board has been sent to the board admin.",
-        variant: "default",
+      if (updateError) {
+        console.error("Error updating board:", updateError);
+        toast.error("There was an error processing your request. Please try again.", {
+          style: { zIndex: 9999 },
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Successfully added user to pending users");
+
+      toast.success("Your request to join the board has been sent to the board admin for approval.", {
+        style: { zIndex: 9999 },
       });
       
+      console.log("Toast notification triggered");
+      
       setBoardCode(["", "", "", "", "", ""]);
-      onOpenChange(false);
+      
+      // Add a small delay before closing the modal to ensure toast shows
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
     } catch (error) {
       console.error("Error joining board:", error);
-      toast({
-        title: "Error joining board",
-        description: "There was an error processing your request. Please try again.",
-        variant: "destructive",
+      toast.error("There was an error processing your request. Please try again.", {
+        style: { zIndex: 9999 },
       });
     } finally {
       setIsLoading(false);
@@ -203,7 +239,7 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   maxLength={1}
-                  className="w-12 h-12 text-center font-mono font-bold uppercase"
+                  className="w-12 h-12 text-center font-mono font-bold"
                   style={{ fontSize: '24px' }}
                 />
               ))}

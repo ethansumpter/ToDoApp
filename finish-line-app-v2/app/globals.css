@@ -165,3 +165,20 @@
 .ProseMirror em {
   font-style: italic;
 }
+
+/* Sonner toast z-index fix */
+[data-sonner-toaster] {
+  z-index: 9999 !important;
+}
+
+[data-sonner-toast] {
+  z-index: 9999 !important;
+}
+
+.sonner-toaster {
+  z-index: 9999 !important;
+}
+
+.toaster {
+  z-index: 9999 !important;
+}
