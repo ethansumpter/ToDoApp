@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -21,18 +21,70 @@ interface JoinBoardModalProps {
 }
 
 export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
-  const [boardCode, setBoardCode] = useState("");
+  const [boardCode, setBoardCode] = useState<string[]>(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Focus first input when modal opens
+  useEffect(() => {
+    if (open && inputRefs.current[0]) {
+      inputRefs.current[0]?.focus();
+    }
+  }, [open]);
+
+  const handleInputChange = (index: number, value: string) => {
+    // Only allow alphanumeric characters and convert to uppercase
+    const sanitizedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    if (sanitizedValue.length <= 1) {
+      const newBoardCode = [...boardCode];
+      newBoardCode[index] = sanitizedValue;
+      setBoardCode(newBoardCode);
+
+      // Auto-focus next input if character was entered
+      if (sanitizedValue && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle backspace to move to previous input
+    if (e.key === 'Backspace' && !boardCode[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+    
+    // Handle paste
+    if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      navigator.clipboard.readText().then(text => {
+        const cleanText = text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+        const newBoardCode = [...boardCode];
+        
+        for (let i = 0; i < 6; i++) {
+          newBoardCode[i] = cleanText[i] || '';
+        }
+        
+        setBoardCode(newBoardCode);
+        
+        // Focus the next empty input or the last input
+        const nextIndex = Math.min(cleanText.length, 5);
+        inputRefs.current[nextIndex]?.focus();
+      });
+    }
+  };
 
   const handleJoinBoard = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!boardCode.trim()) {
+    const fullBoardCode = boardCode.join('');
+    
+    if (fullBoardCode.length !== 6) {
       toast({
-        title: "Board code required",
-        description: "Please enter a board code to join.",
+        title: "Incomplete board code",
+        description: "Please enter all 6 characters of the board code.",
         variant: "destructive",
       });
       return;
@@ -43,7 +95,7 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
     try {
       // First, check if the board exists
       const { getBoardByBoardCode } = await import("@/lib/supabase/boards");
-      const board = await getBoardByBoardCode(boardCode.trim());
+      const board = await getBoardByBoardCode(fullBoardCode);
       
       if (!board) {
         toast({
@@ -104,7 +156,7 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
         variant: "default",
       });
       
-      setBoardCode("");
+      setBoardCode(["", "", "", "", "", ""]);
       onOpenChange(false);
     } catch (error) {
       console.error("Error joining board:", error);
@@ -119,7 +171,7 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
   };
 
   const handleClose = () => {
-    setBoardCode("");
+    setBoardCode(["", "", "", "", "", ""]);
     onOpenChange(false);
   };
 
@@ -139,16 +191,25 @@ export function JoinBoardModal({ open, onOpenChange }: JoinBoardModalProps) {
         <form onSubmit={handleJoinBoard} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="boardCode">Board Code</Label>
-            <Input
-              id="boardCode"
-              placeholder="Enter board code (e.g., ABC123)"
-              value={boardCode}
-              onChange={(e) => setBoardCode(e.target.value.toUpperCase())}
-              maxLength={6}
-              className="text-center font-mono text-lg tracking-wider"
-            />
-            <p className="text-sm text-muted-foreground">
-              Ask your team member for the board code to join their board.
+            <div className="flex gap-2 justify-center">
+              {boardCode.map((char, index) => (
+                <Input
+                  key={index}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  value={char}
+                  onChange={(e) => handleInputChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  maxLength={1}
+                  className="w-12 h-12 text-center font-mono font-bold uppercase"
+                  style={{ fontSize: '24px' }}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Ask your team member for the 6-character board code to join their board.
             </p>
           </div>
 
