@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Board } from "@/types/boards";
 import { Task, TaskFormData } from "@/types/tasks";
 import { getBoardByBoardCode } from "@/lib/supabase/boards";
@@ -15,6 +15,7 @@ import { BoardColumns, BoardHeader, TaskDetails, ViewMembersModal, TaskSortDropd
 export default function BoardViewPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isClient = useIsClient();
   const [board, setBoard] = useState<Board | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -97,6 +98,24 @@ export default function BoardViewPage() {
       setLoading(false);
     }
   }, [boardCode, router]);
+
+  // Check for share query parameter
+  useEffect(() => {
+    if (searchParams.get('share') === 'true' && board) {
+      setShowViewMembers(true);
+    }
+  }, [searchParams, board]);
+
+  const handleViewMembersChange = (open: boolean) => {
+    setShowViewMembers(open);
+    
+    // Remove the share query parameter when modal is closed
+    if (!open && searchParams.get('share') === 'true') {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('share');
+      router.replace(newUrl.pathname + newUrl.search);
+    }
+  };
 
   if (loading) {
     return (
@@ -338,7 +357,7 @@ export default function BoardViewPage() {
       {showViewMembers && currentUser && (
         <ViewMembersModal
           open={showViewMembers}
-          onOpenChange={setShowViewMembers}
+          onOpenChange={handleViewMembersChange}
           board={board}
           currentUserId={currentUser}
         />
