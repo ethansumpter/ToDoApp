@@ -360,6 +360,7 @@ export default function BoardViewPage() {
           onOpenChange={handleViewMembersChange}
           board={board}
           currentUserId={currentUser}
+          onBoardUpdate={(updatedBoard) => setBoard(updatedBoard)}
         />
       )}
     </div>

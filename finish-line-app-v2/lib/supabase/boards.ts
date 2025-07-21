@@ -188,3 +188,125 @@ export async function deleteBoard(boardId: number): Promise<void> {
     throw new Error(error.message || 'Failed to delete board');
   }
 }
+
+export async function acceptPendingUser(boardId: number, userId: string): Promise<Board> {
+  const supabase = createClient();
+  
+  // First, get the current board data
+  const { data: board, error: fetchError } = await supabase
+    .from('boards')
+    .select('*')
+    .eq('id', boardId)
+    .single();
+
+  if (fetchError || !board) {
+    console.error('Error fetching board:', fetchError);
+    throw new Error('Board not found');
+  }
+
+  // Check if user is in pending_users
+  if (!board.pending_users.includes(userId)) {
+    throw new Error('User is not in pending users list');
+  }
+
+  // Remove user from pending_users and add to allowed_users
+  const updatedPendingUsers = board.pending_users.filter((id: string) => id !== userId);
+  const updatedAllowedUsers = [...board.allowed_users, userId];
+
+  const { data, error } = await supabase
+    .from('boards')
+    .update({
+      pending_users: updatedPendingUsers,
+      allowed_users: updatedAllowedUsers
+    })
+    .eq('id', boardId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error accepting pending user:', error);
+    throw new Error(error.message || 'Failed to accept pending user');
+  }
+
+  return data;
+}
+
+export async function rejectPendingUser(boardId: number, userId: string): Promise<Board> {
+  const supabase = createClient();
+  
+  // First, get the current board data
+  const { data: board, error: fetchError } = await supabase
+    .from('boards')
+    .select('*')
+    .eq('id', boardId)
+    .single();
+
+  if (fetchError || !board) {
+    console.error('Error fetching board:', fetchError);
+    throw new Error('Board not found');
+  }
+
+  // Check if user is in pending_users
+  if (!board.pending_users.includes(userId)) {
+    throw new Error('User is not in pending users list');
+  }
+
+  // Remove user from pending_users
+  const updatedPendingUsers = board.pending_users.filter((id: string) => id !== userId);
+
+  const { data, error } = await supabase
+    .from('boards')
+    .update({
+      pending_users: updatedPendingUsers
+    })
+    .eq('id', boardId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error rejecting pending user:', error);
+    throw new Error(error.message || 'Failed to reject pending user');
+  }
+
+  return data;
+}
+
+// Test utility function - remove in production
+export async function addTestPendingUser(boardId: number, userId: string): Promise<Board> {
+  const supabase = createClient();
+  
+  // First, get the current board data
+  const { data: board, error: fetchError } = await supabase
+    .from('boards')
+    .select('*')
+    .eq('id', boardId)
+    .single();
+
+  if (fetchError || !board) {
+    console.error('Error fetching board:', fetchError);
+    throw new Error('Board not found');
+  }
+
+  // Add user to pending_users if not already there
+  if (!board.pending_users.includes(userId)) {
+    const updatedPendingUsers = [...board.pending_users, userId];
+
+    const { data, error } = await supabase
+      .from('boards')
+      .update({
+        pending_users: updatedPendingUsers
+      })
+      .eq('id', boardId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding test pending user:', error);
+      throw new Error(error.message || 'Failed to add test pending user');
+    }
+
+    return data;
+  }
+
+  return board;
+}

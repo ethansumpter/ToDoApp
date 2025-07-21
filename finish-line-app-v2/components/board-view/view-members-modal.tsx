@@ -20,11 +20,14 @@ import {
   Crown,
   CheckCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Check,
+  X
 } from "lucide-react";
 import { Board } from "@/types/boards";
 import { UserProfile } from "@/types/user";
 import { getUserProfiles, formatUserDisplayName } from "@/lib/supabase/users";
+import { acceptPendingUser, rejectPendingUser } from "@/lib/supabase/boards";
 import { useToast } from "@/hooks/use-toast";
 
 interface ViewMembersModalProps {
@@ -32,13 +35,15 @@ interface ViewMembersModalProps {
   onOpenChange: (open: boolean) => void;
   board: Board;
   currentUserId: string;
+  onBoardUpdate?: (updatedBoard: Board) => void;
 }
 
 export function ViewMembersModal({ 
   open, 
   onOpenChange, 
   board, 
-  currentUserId 
+  currentUserId,
+  onBoardUpdate 
 }: ViewMembersModalProps) {
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [pendingMembers, setPendingMembers] = useState<UserProfile[]>([]);
@@ -54,18 +59,62 @@ export function ViewMembersModal({
     const fetchMembers = async () => {
       if (!open) return;
       
+      console.log('Board data:', board);
+      console.log('Current user ID:', currentUserId);
+      console.log('Board admin:', board.admin);
+      console.log('Is admin:', board.admin === currentUserId);
+      
       setLoading(true);
       try {
+        // Reset states
+        setMembers([]);
+        setPendingMembers([]);
+        
+        // Test: Try to fetch current user's profile to verify the function works
+        try {
+          console.log('Testing getUserProfiles with current user ID:', currentUserId);
+          const currentUserProfile = await getUserProfiles([currentUserId]);
+          console.log('Current user profile fetch result:', currentUserProfile);
+        } catch (testError) {
+          console.error('Error fetching current user profile (test):', testError);
+        }
+        
         // Fetch allowed users (active members)
-        if (board.allowed_users.length > 0) {
+        if (board.allowed_users && board.allowed_users.length > 0) {
           const allowedUserProfiles = await getUserProfiles(board.allowed_users);
           setMembers(allowedUserProfiles);
         }
 
         // Fetch pending users if any
-        if (board.pending_users.length > 0) {
-          const pendingUserProfiles = await getUserProfiles(board.pending_users);
-          setPendingMembers(pendingUserProfiles);
+        if (board.pending_users && board.pending_users.length > 0) {
+          console.log('Fetching pending users:', board.pending_users);
+          try {
+            const pendingUserProfiles = await getUserProfiles(board.pending_users);
+            console.log('Pending user profiles:', pendingUserProfiles);
+            console.log('Number of pending user profiles returned:', pendingUserProfiles.length);
+            
+            // Log each user profile
+            pendingUserProfiles.forEach((profile, index) => {
+              console.log(`Pending user ${index + 1}:`, {
+                id: profile.id,
+                email: profile.email,
+                first_name: profile.first_name,
+                last_name: profile.last_name
+              });
+            });
+            
+            setPendingMembers(pendingUserProfiles);
+          } catch (pendingError) {
+            console.error('Error fetching pending user profiles:', pendingError);
+            // Continue execution but show error for pending users specifically
+            toast({
+              title: "Warning",
+              description: "Could not load pending user details",
+              variant: "destructive"
+            });
+          }
+        } else {
+          console.log('No pending users found');
         }
       } catch (error) {
         console.error('Error fetching members:', error);
@@ -133,6 +182,63 @@ export function ViewMembersModal({
       description: `Invitation sent to ${inviteEmail}`,
     });
     setInviteEmail("");
+  };
+
+  const handleAcceptPendingUser = async (userId: string) => {
+    try {
+      const updatedBoard = await acceptPendingUser(board.id, userId);
+      
+      // Update local state
+      const acceptedUser = pendingMembers.find(user => user.id === userId);
+      if (acceptedUser) {
+        setMembers(prev => [...prev, acceptedUser]);
+        setPendingMembers(prev => prev.filter(user => user.id !== userId));
+      }
+      
+      // Notify parent component if callback provided
+      if (onBoardUpdate) {
+        onBoardUpdate(updatedBoard);
+      }
+      
+      toast({
+        title: "User Accepted",
+        description: `${acceptedUser?.first_name} ${acceptedUser?.last_name} has been added to the board`,
+      });
+    } catch (error) {
+      console.error('Error accepting pending user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept user invitation",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectPendingUser = async (userId: string) => {
+    try {
+      const updatedBoard = await rejectPendingUser(board.id, userId);
+      
+      // Update local state
+      const rejectedUser = pendingMembers.find(user => user.id === userId);
+      setPendingMembers(prev => prev.filter(user => user.id !== userId));
+      
+      // Notify parent component if callback provided
+      if (onBoardUpdate) {
+        onBoardUpdate(updatedBoard);
+      }
+      
+      toast({
+        title: "User Rejected",
+        description: `${rejectedUser?.first_name} ${rejectedUser?.last_name}'s invitation has been rejected`,
+      });
+    } catch (error) {
+      console.error('Error rejecting pending user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject user invitation",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleViewQRCode = () => {
@@ -280,41 +386,136 @@ export function ViewMembersModal({
             )}
 
             {/* Pending Members */}
-            {pendingMembers.length > 0 && (
-              <>
-                <div className="flex items-center justify-between pt-4">
-                  <h3 className="text-lg font-semibold">
-                    Pending Invitations ({pendingMembers.length})
-                  </h3>
-                </div>
+            <>
+              <div className="flex items-center justify-between pt-4">
+                <h3 className="text-lg font-semibold">
+                  Pending Invitations ({pendingMembers.length})
+                </h3>
+                {isAdmin && (
+                  <span className="text-sm text-muted-foreground">
+                    Admin Controls Available
+                  </span>
+                )}
+              </div>
 
+              {pendingMembers.length > 0 ? (
                 <div className="space-y-2">
                   {pendingMembers.map((member) => (
-                    <Card key={member.id} className="p-4 opacity-60">
+                    <Card key={member.id} className="p-4 border-l-4 border-l-yellow-500">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gray-400 to-gray-500 flex items-center justify-center text-white font-medium">
-                            {member.first_name.charAt(0)}{member.last_name.charAt(0)}
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center text-white font-medium">
+                            {member.first_name?.charAt(0) || '?'}{member.last_name?.charAt(0) || '?'}
                           </div>
                           <div>
                             <span className="font-medium">
-                              {formatUserDisplayName(member)}
+                              {member.first_name && member.last_name ? 
+                                formatUserDisplayName(member) : 
+                                `User ${member.id.substring(0, 8)}...`
+                              }
                             </span>
                             <p className="text-sm text-muted-foreground">
-                              {member.email}
+                              {member.email || 'Email not available'}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-yellow-500" />
-                          <span className="text-sm text-muted-foreground">Pending</span>
+                          {isAdmin ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAcceptPendingUser(member.id)}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-300"
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectPendingUser(member.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-yellow-500" />
+                              <span className="text-sm text-muted-foreground">Pending</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </Card>
                   ))}
                 </div>
-              </>
-            )}
+              ) : board.pending_users && board.pending_users.length > 0 ? (
+                // Show pending UUIDs if we have them but couldn't fetch profiles
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Found {board.pending_users.length} pending user(s), but could not load their profiles:
+                  </div>
+                  {board.pending_users.map((userId) => (
+                    <Card key={userId} className="p-4 border-l-4 border-l-red-500">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-400 to-red-500 flex items-center justify-center text-white font-medium">
+                            ?
+                          </div>
+                          <div>
+                            <span className="font-medium">
+                              User {userId.substring(0, 8)}...
+                            </span>
+                            <p className="text-sm text-muted-foreground">
+                              Profile could not be loaded
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isAdmin ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAcceptPendingUser(userId)}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-300"
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectPendingUser(userId)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-yellow-500" />
+                              <span className="text-sm text-muted-foreground">Pending</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  {isAdmin ? 
+                    "No pending invitations at this time" : 
+                    "No pending invitations visible"
+                  }
+                </div>
+              )}
+            </>
           </div>
         </div>
       </DialogContent>
